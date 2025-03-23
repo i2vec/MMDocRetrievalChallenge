@@ -27,6 +27,7 @@ export DEBUG=true
 # M2KR task
 ## 1. Execute text embedding
 export GME_PATH="/mnt/vepfs/fs_ckps/xumj/models/Mrag/gme-Qwen2-VL-7B-Instruct"
+export QWEN_25_VL_72B_AWQ_PATH="/mnt/vepfs/fs_ckps/xumj/llms/Qwen2.5-VL-72B-Instruct-AWQ"
 export M2KR_PASSAGES_TEXT_EMBEDDING_CHROMA_PATH="./chroma/m2kr_text"
 export M2KR_PASSAGES_TEXT_EMBEDDING_CHROMA_COLLECTION_NAME="m2kr_gme_instruct_text"
 export OUTPUT_FILE_M2KR_1="./outputs/gme_image_to_text_retrieval.json" # The output file
