@@ -87,7 +87,6 @@ class ModelWorker:
         
         return results
 
-# 主处理流程
 def main(
     model_path: str = os.environ["GME_PATH"],
     num_workers: int = torch.cuda.device_count(),
@@ -104,10 +103,8 @@ def main(
     print(len(m2kr_dataset))
     print(debug)
 
-    # 创建多个worker
     workers = [ModelWorker.remote(model_path) for _ in range(num_workers)]
     
-        # 准备批次数据
     batch_size = len(m2kr_dataset) // num_workers
     batches = []
     for i in range(num_workers):
@@ -115,20 +112,16 @@ def main(
         end_idx = (i + 1) * batch_size if i < num_workers - 1 else len(m2kr_dataset)
         batches.append(m2kr_dataset[start_idx:end_idx])
     
-    # 并行处理
     futures = [workers[i % num_workers].process_batch.remote(batch, topk) 
               for i, batch in enumerate(batches)]
     
-    # 收集结果
     all_results = []
     for future in tqdm(futures, desc="收集结果"):
         batch_results = ray.get(future)
         all_results.extend(batch_results)
     
-    # 按question_id排序
     all_results.sort(key=lambda x: int(x["question_id"]))
     
-    # 按照question_id去重并整理结果
     results = []
     seen = set()
     
@@ -136,7 +129,6 @@ def main(
         results.append(result)
         seen.add(result['question_id'])
     
-    # 保存为JSON文件
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
 

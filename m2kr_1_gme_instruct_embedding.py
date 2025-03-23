@@ -10,7 +10,6 @@ from data.m2kr_dataset import M2KRPassagesDataset
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-# 定义远程Worker类
 @ray.remote(num_gpus=1)
 class ModelWorker:
     def __init__(self, gme_path):
@@ -40,11 +39,10 @@ def main(
     num_workers: int = torch.cuda.device_count(),
     debug: bool = os.environ["DEBUG"] == "true"
 ):
-    # 初始化Ray
     ray.init()
     m2kr_passages_dataset = M2KRPassagesDataset()
     m2kr_passages = m2kr_passages_dataset
-    # 初始化ChromaDB
+
     client = chromadb.PersistentClient(path=chroma_path)
     collection = client.get_or_create_collection(collection_name)
     
@@ -52,10 +50,8 @@ def main(
         print("Debug mode, only process 10 passages")
         m2kr_passages = m2kr_passages[:10]
     
-    # 创建workers
     workers = [ModelWorker.remote(gme_path) for _ in range(num_workers)]
     
-    # 准备批次数据
     batch_size = len(m2kr_passages) // num_workers
     batches = []
     for i in range(num_workers):
@@ -63,14 +59,12 @@ def main(
         end_idx = (i + 1) * batch_size if i < num_workers - 1 else len(m2kr_passages)
         batches.append(m2kr_passages[start_idx:end_idx])
     
-    # 并行处理
     print("开始并行处理数据...")
     results_refs = [
         workers[i].process_batch.remote(batches[i])
         for i in range(num_workers)
     ]
     
-    # 获取结果并添加到ChromaDB
     for result_ref in tqdm(results_refs, desc="等待批次完成"):
         document_embeddings, passage_ids = ray.get(result_ref)
         collection.add(
