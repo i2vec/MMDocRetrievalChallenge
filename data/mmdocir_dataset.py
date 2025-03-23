@@ -39,7 +39,7 @@ class MMDocIRDataset(Dataset):
                     "passage_id": row["passage_id"],
                     "image_path": os.path.join(self.passage_img_dir, row["image_path"]),
                     "ocr_text": row["ocr_text"],
-                    # "vlm_text": row["vlm_text"]
+                    "vlm_text": row["vlm_text"]
                 }
                 for _, row in self.passage_df.loc[self.passage_df['doc_name'] == data_item["doc_name"]].iterrows()
             ]
