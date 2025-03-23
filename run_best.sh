@@ -66,7 +66,6 @@ python mmdocir_3_gme_text_retrieval.py
 
 
 ## 4. rerank the 1
-# <complelte and run the code here>
 export OUTPUT_FILE_MMDOCIR_4="./outputs/vlrerank_colqwen2_7b.json" # The output file
 python MMDocIRContentJudger/run_qwen25vl_judger.py
 
