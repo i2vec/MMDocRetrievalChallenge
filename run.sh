@@ -39,11 +39,10 @@ python m2kr_1_gme_instruct_retrieval.py
 ## 2. Execute layout image embedding and retrieval
 export OUTPUT_FILE_M2KR_2="./outputs/m2kr_subfig_match.json" # The output file
 python m2kr_2_gme_subfig_retrieval.py
-
 ## 3. Merge the results of 1 and 2, and get the top10 result of each question
-export OUTPUT_FILE_M2KR_3="./outputs/m2kr_subfig_match.csv" # The output file
+export OUTPUT_FILE_M2KR_3="./outputs/m2kr_subfig_merge.json" # The output file
+# <complelte and run the code here>
 python merge_m2kr_subfig_fused.py
-
 ## 4. Rerank
 export OUTPUT_FILE_M2KR_4="./output/vlrerank_gme_image_to_text_retrieval.json" # The output file
 python M2KRContentJudger/run_qwen25vl_judger.py

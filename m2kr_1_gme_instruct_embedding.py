@@ -30,7 +30,7 @@ class ModelWorker:
             
         except Exception as e:
             print(f"处理批次时发生错误: {str(e)}")
-            return []
+            return [], []
 
 def main(
     gme_path: str = os.environ["GME_PATH"],

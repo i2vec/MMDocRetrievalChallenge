@@ -22,7 +22,7 @@ class ModelWorker:
         self.gme = GmeQwen2VL(
             model_name="gme-Qwen2-VL-7B-Instruct",
             model_path=model_path,
-            device="cuda:0"
+            device="cuda"
         )
         self.client = chromadb.PersistentClient(path="./chroma_db_2")
         self.collection = self.client.get_or_create_collection("m2kr_image")
@@ -41,10 +41,11 @@ class ModelWorker:
                     images=[question_image],
                     # instruction="Find a text description that matches the given question and the image."
                 )
-                text_embedding = self.gme.get_text_embeddings(
-                    texts=[question_text + f"\nImage description: {query['lagend']}"],
-                    # instruction="Find a text description that matches the given question and the image description."
-                )
+                text_embedding = None
+                # text_embedding = self.gme.get_text_embeddings(
+                #     texts=[question_text + f"\nImage description: {query['lagend']}"],
+                #     # instruction="Find a text description that matches the given question and the image description."
+                # )
             else:
                 query_type = "single"
 
@@ -53,11 +54,11 @@ class ModelWorker:
                 # embedding = self.gme.get_image_embeddings(images=[question_image], instruction=instruction)
                 # v1
                 embedding = self.gme.get_fused_embeddings(images=[question_image], texts=[instruction])
-
-                text_embedding = self.gme.get_text_embeddings(
-                    texts=[f"Image description: {query['lagend']}"],
-                    # instruction="Find a text description that matches the given image description."
-                )
+                text_embedding = None
+                # text_embedding = self.gme.get_text_embeddings(
+                #     texts=[f"Image description: {query['lagend']}"],
+                #     # instruction="Find a text description that matches the given image description."
+                # )
 
             # 计算top10
             query_results = self.collection.query(
@@ -65,11 +66,11 @@ class ModelWorker:
                 n_results=topk,
                 include=['distances']
             )
-            query_results_legend = self.collection.query(
-                query_embeddings=text_embedding.cpu().numpy().tolist(),
-                n_results=topk,
-                include=['distances']
-            )
+            # query_results_legend = self.collection.query(
+            #     query_embeddings=text_embedding.cpu().numpy().tolist(),
+            #     n_results=topk,
+            #     include=['distances']
+            # )
 
             results.append({
                 "question_id": query['question_id'],
@@ -78,10 +79,10 @@ class ModelWorker:
                     "passage_ids": query_results['ids'][0],
                     "scores": query_results['distances'][0],
                 },
-                "text_to_text": {
-                    "passage_ids": query_results_legend['ids'][0],
-                    "scores": query_results_legend['distances'][0],
-                }
+                # "text_to_text": {
+                #     "passage_ids": query_results_legend['ids'][0],
+                #     "scores": query_results_legend['distances'][0],
+                # }
             })
 
         return results
@@ -108,15 +109,15 @@ def main(
         num_workers: int = 4,
         topk: int = 100,
         output_dir: str = "./outputs",
-        debug=os.environ.get("DEBUG", False) == "true"
+        debug:bool = False
 ):
     os.makedirs(output_dir, exist_ok=True)
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     m2kr_queries = pd.read_parquet(queries_path)
-
+    debug = (os.environ["DEBUG"] == "true")
     if debug:
         # m2kr_queries = m2kr_queries.sample(n=20, random_state=42)
-        m2kr_queries = m2kr_queries[:20]
+        m2kr_queries = m2kr_queries[:10]
 
     # 创建多个worker
     workers = [ModelWorker.remote(model_path) for _ in range(num_workers)]
@@ -148,6 +149,7 @@ def main(
     # 保存为JSON文件
     with open(os.environ.get("OUTPUT_FILE_M2KR_2"), 'w', encoding='utf-8') as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
+    print('retrieval of m2kr gme subfig finished.')
 
 
 if __name__ == "__main__":

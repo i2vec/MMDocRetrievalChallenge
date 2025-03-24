@@ -19,8 +19,7 @@ chroma_db_path = "./chroma_db_2"
 collection_name = "m2kr_image"
 model_path = os.environ.get("GME_PATH")
 
-# 读取 Passage 数据
-df_passages = pd.read_parquet(passage_path)
+
 
 
 @ray.remote(num_gpus=1)
@@ -119,7 +118,11 @@ class ChromaWriter:
         return f"Writer: Added embeddings for {passage_id} indices {idxs}"
 
 
-def main(num_workers=8):
+def main(num_workers=1):
+    # 读取 Passage 数据
+    df_passages = pd.read_parquet(passage_path)
+    if os.environ["DEBUG"] == "true":
+        df_passages = df_passages[:20]
     ray.init()
 
     # 创建 PassageWorker actor 池，每个 actor 占用 1 个 GPU
@@ -127,6 +130,7 @@ def main(num_workers=8):
         PassageWorker.remote(model_path, m2kr_challenge_img_root)
         for _ in range(num_workers)
     ]
+
     # 创建单一的 writer actor（用于集中写入）
     writer = ChromaWriter.remote(chroma_db_path, collection_name, len(df_passages))
 
