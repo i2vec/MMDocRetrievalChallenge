@@ -42,7 +42,6 @@ python m2kr_2_gme_subfig_retrieval.py
 
 ## 3. Merge the results of 1 and 2, and get the top10 result of each question
 export OUTPUT_FILE_M2KR_3="./outputs/m2kr_subfig_match.csv" # The output file
-# <complelte and run the code here>
 python merge_m2kr_subfig_fused.py
 
 ## 4. Rerank
@@ -55,14 +54,12 @@ python M2KRContentJudger/run_qwen25vl_judger.py
 export COLQWEN2_7B_PATH="/mnt/vepfs/fs_ckps/xumj/models/Mrag/colqwen2-7b-v1.0"
 export OUTPUT_FILE_MMDOCIR_1="./outputs/mmdocir_colqwen2_7b_retrieval_top10.json" # The output file
 python mmdocir_1_colqwen.py
-# embed_gme_layout
-python mmdocir_2_gme_layout_embed.py
 
 ## 2. execute gme layout retrieval
 export OUTPUT_FILE_MMDOCIR_2="./outputs/mmdocir_gme_layout.csv" # The output file
 export OUTPUT_FILE_MMDOCIR_2_JSON="./outputs/mmdocir_gme_layout.json"
+python mmdocir_2_gme_layout_embed.py
 python mmdocir_2_gme_layout_retrieval.py
-# <complelte and run the code here>
 
 ## 3. execute gme text retrieval
 export MMDOCIR_PASSAGES_TEXT_EMBEDDING_CHROMA_PATH="./chroma/mmdocir_text"

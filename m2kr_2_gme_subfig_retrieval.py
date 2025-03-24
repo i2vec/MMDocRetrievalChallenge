@@ -108,7 +108,7 @@ def main(
         num_workers: int = 4,
         topk: int = 100,
         output_dir: str = "./outputs",
-        debug=False
+        debug=os.environ.get("DEBUG", False) == "true"
 ):
     os.makedirs(output_dir, exist_ok=True)
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -151,4 +151,4 @@ def main(
 
 
 if __name__ == "__main__":
-    main(debug=False)
+    main()

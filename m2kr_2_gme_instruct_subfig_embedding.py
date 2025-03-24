@@ -68,6 +68,7 @@ class PassageWorker:
         """
         writer_tasks = []  # 用于保存写入任务的 ObjectRef
         image_path = os.path.join(self.challenge_img_root, page_path)
+        print(image_path)
         try:
             img = Image.open(image_path)
         except Exception as e:

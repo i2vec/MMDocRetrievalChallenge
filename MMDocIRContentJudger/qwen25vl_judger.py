@@ -3,10 +3,11 @@ from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
 import torch.nn.functional as F
 from PIL import Image
 import gc
+import os
 from qwen_vl_utils import process_vision_info
 
 class ContentJudger:
-    def __init__(self, qwen25vl_path = "/mnt/vepfs/fs_ckps/xumj/llms/Qwen2.5-VL-72B-Instruct-AWQ"):
+    def __init__(self, qwen25vl_path = os.environ["QWEN_25_VL_72B_AWQ_PATH"]):
     # def __init__(self, qwen25vl_path = "/mnt/vepfs/fs_ckps/xumj/llms/Qwen2.5-VL-7B-Instruct/"):
         """初始化内容判断器"""
         self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
