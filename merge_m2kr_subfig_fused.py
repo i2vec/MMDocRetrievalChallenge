@@ -67,7 +67,7 @@ def use_similarity(question_id, passages):
         try:
             tmp = cal_RANSAC_similarity(query_img, page_path)
         except:
-            print('error occur')
+            # print('error occur')
             continue
         if tmp['Homography Inliers Ratio'] > 0.7:
             res.append(item.split('_')[0])
@@ -77,9 +77,6 @@ def use_similarity(question_id, passages):
 
 
 def main():
-    os.environ['OUTPUT_FILE_M2KR_2'] = './extracted_images/m2kr_i2i_retrival_top10_2.json'
-    os.environ['OUTPUT_FILE_M2KR_1'] = './extracted_images/m2kr_i2t_retrival_top10_v1_xumj.json'
-    os.environ["OUTPUT_FILE_M2KR_3"] = './extracted_images/test.json'
     with open(os.environ.get("OUTPUT_FILE_M2KR_2"), 'r') as f:
         json_data = json.load(f)
     with open(os.environ.get("OUTPUT_FILE_M2KR_1"), 'r') as f:
@@ -115,11 +112,15 @@ def main():
     #     'question_id': item['question_id'],
     #     'passage_id': json.dumps(passage_ids),
     # })
+
+
 def store_all_subfig():
     prepared_data = []
     for item in df_passages.itertuples():
         prepared_data.append((item.passage_id, item.page_screenshot))
-    # print(prepared_data)
+    if os.environ.get("DEBUG") == "true":
+        prepared_data = prepared_data[:20]
+        # print(prepared_data)
     if not os.path.exists('./tmp_retrieve'): os.mkdir('./tmp_retrieve')
     with tqdm_joblib(tqdm(desc="extract subfig", total=len(prepared_data))):
         results = Parallel(n_jobs=20, prefer=None)(
