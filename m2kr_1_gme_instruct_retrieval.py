@@ -100,8 +100,6 @@ def main(
     
     if debug:
         m2kr_dataset = m2kr_dataset[:10]
-    print(len(m2kr_dataset))
-    print(debug)
 
     workers = [ModelWorker.remote(model_path) for _ in range(num_workers)]
     

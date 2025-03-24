@@ -3,7 +3,7 @@ import json
 import pandas as pd
 import ray
 from tqdm import tqdm
-from qwen25vl_judger import ContentJudger
+from M2KRContentJudger.qwen25vl_judger import ContentJudger
 
 @ray.remote(num_gpus=1)
 def process_chunk(chunk, queries, m2kr_passages, m2kr_query_img_root):
@@ -12,7 +12,7 @@ def process_chunk(chunk, queries, m2kr_passages, m2kr_query_img_root):
     results = []
     for q in tqdm(chunk, desc="处理问题", total=len(chunk)):
         question_id = q['question_id']
-        passage_ids = q['passage_ids']
+        passage_ids = q['passage_id']
         
         # 在查询数据中获取对应问题详细信息
         query_item = queries[queries['question_id'] == question_id]
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     ray.init()
     
     # 读取待处理问题文件
-    with open("rerank_targets.json", "r", encoding="utf-8") as f:
+    with open(os.environ["OUTPUT_FILE_M2KR_3"], "r", encoding="utf-8") as f:
         questions = json.load(f)
     
     # 配置M2KR相关路径

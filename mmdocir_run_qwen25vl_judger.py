@@ -4,7 +4,7 @@ import json
 from PIL import Image
 from tqdm import tqdm
 import ray
-from qwen25vl_judger import ContentJudger
+from MMDocIRContentJudger.qwen25vl_judger import ContentJudger
 
 @ray.remote(num_gpus=1)
 def process_chunk(chunk, question_items, passage_df, mmdocir_root):

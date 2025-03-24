@@ -19,7 +19,7 @@ def main(debug=os.environ["DEBUG"]=="true"):
     
     if debug:
         print("debug模式,只处理前20条数据")
-        data_items = data_items[:10]
+        mmdocir_dataset = mmdocir_dataset[:20]
         
     results = []
     for item in tqdm(mmdocir_dataset):
@@ -84,7 +84,7 @@ def main(debug=os.environ["DEBUG"]=="true"):
 
     results.sort(key=lambda x: x["question_id"])
     
-    with open("", "w", encoding="utf-8") as f:
+    with open(os.environ["OUTPUT_FILE_MMDOCIR_3"], "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
     print("处理完成！")
 

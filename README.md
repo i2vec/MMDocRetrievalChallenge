@@ -3,7 +3,8 @@
 ## Best Solution
 Solve the two tasks with serveral models.
 We use GME for the m2kr dataset and use colqwen for the mmdocir datset. In the end, we use qwen2.5-vl-72B-AWQ for the rerank.
-we get 65.5 on the leaderboard.
+we got 65.5 on the leaderboard(With Rerank).
+we got 64.0 on the leaderboard(Without Rerank)
 
 
 ### M2KR

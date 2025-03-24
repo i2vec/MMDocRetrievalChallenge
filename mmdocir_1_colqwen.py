@@ -123,26 +123,41 @@ class ModelWorker:
                 })
         return results
 
-def main(debug=False):
+def main(debug=os.environ["DEBUG"]=="true"):
+    # 模型和数据路径
+    mmdocir_root = os.environ["MMDOCIR_ROOT"]
+    passage_path = os.path.join(mmdocir_root, 'MMDocIR_doc_passages.parquet')
+    # colqwen_path = "/mnt/vepfs/fs_ckps/xumj/models/Mrag/colqwen2.5-7b-v0.1"
+    # colqwen_path = "/mnt/vepfs/fs_ckps/xumj/models/ColQwen2.5-7b-multilingual-v1.0"
+    # colqwen_path = "/mnt/vepfs/fs_ckps/xumj/models/colqwen2.5-v0.1/"
     colqwen_path = os.environ["COLQWEN2_7B_PATH"]
-    mmdocir_dataset = MMDocIRDataset()
-
+    
+    # 加载数据
+    dataset_df = pd.read_parquet(passage_path)
+    data_items = []
+    for line in open(os.path.join(mmdocir_root, "MMDocIR_gt_remove.jsonl"), 'r', encoding="utf-8"):
+        data_items.append(json.loads(line.strip()))
     if debug:
-        print(f"debug模式，只处理前10条数据")
-        mmdocir_dataset = mmdocir_dataset[:10]
+        print(f"debug模式，只处理前20条数据")
+        data_items = data_items[:20]
+        
+    # 创建4个worker
     num_workers = 4
     workers = [ModelWorker.remote(colqwen_path) for _ in range(num_workers)]
     
-    mmdocir_dataset.sort(key=lambda x: x["doc_name"])
+    # 按文档名称排序,确保相似的文档分散到不同worker
+    data_items.sort(key=lambda x: x["doc_name"])
     
+    # 准备批次数据,交错分配确保每个worker获得均匀的文档分布
     batches = [[] for _ in range(num_workers)]
-    for i, item in enumerate(mmdocir_dataset):
+    for i, item in enumerate(data_items):
         worker_idx = i % num_workers
         batches[worker_idx].append(item)
     
+    # 并行处理
     print("开始并行处理数据...")
     results_refs = [
-        workers[i].process_batch.remote(batches[i])
+        workers[i].process_batch.remote(batches[i], dataset_df, mmdocir_root)
         for i in range(num_workers)
     ]
     

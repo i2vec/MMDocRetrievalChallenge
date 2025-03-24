@@ -98,43 +98,54 @@ class Retriever:
             res = []
         old_doc_name = "None"
         for json_data in tqdm(loader):
-            # json_data = loader.get_item(idx)
-            if json_data is None:
-                # print('skip')
-                continue
-            cur_doc_name = json_data['doc_name']
-            images = [item['image_content'] for item in json_data['passages']]
-            images_ids = [item['page_id'] for item in json_data['passages']]
-            # 处理当前的问题。
-            queries = [json_data['queries']]
-            batch_queries = model.get_text_embeddings(
-                texts=queries,
-                instruction=get_instruction(queries[0])
-            ).cpu()
-            tot_pages = len(json_data['passages'])
-            instructions = [build_page_instruct(int(item['page_id']), tot_pages) for item in json_data['passages']]
-            if cur_doc_name != old_doc_name:
-                # batch_images = processor.process_instruction_images(images, instructions=instructions).to(model.device)
-                batch_doc_embeddings, batch_doc_idx2page = self.get_cached_embeddings(doc_name=json_data['doc_name'])
-                if batch_doc_idx2page is not None:
-                    batch_doc_embeddings = torch.cat(batch_doc_embeddings).cpu()
-            if batch_doc_embeddings is not None:
-                scores = (batch_queries * batch_doc_embeddings).sum(-1)
-                answers = torch.argsort(scores, descending=True)[:30]
-                sorted_values = scores[answers]
-                answers = [batch_doc_idx2page[idx] for idx in answers]
-                str_ans = [f'"{int(x)}"' for x in answers]
+            try:
+                if json_data is None:
+                    continue
+                cur_doc_name = json_data['doc_name']
+                images = [item['image_content'] for item in json_data['passages']]
+                images_ids = [item['page_id'] for item in json_data['passages']]
+                queries = [json_data['queries']]
+                batch_queries = model.get_text_embeddings(
+                    texts=queries,
+                    instruction=get_instruction(queries[0])
+                ).cpu()
+                tot_pages = len(json_data['passages'])
+                instructions = [build_page_instruct(int(item['page_id']), tot_pages) for item in json_data['passages']]
+                if cur_doc_name != old_doc_name:
+                    batch_doc_embeddings, batch_doc_idx2page = self.get_cached_embeddings(doc_name=json_data['doc_name'])
+                    if batch_doc_idx2page is not None:
+                        batch_doc_embeddings = torch.cat(batch_doc_embeddings).cpu()
+                if batch_doc_embeddings is not None:
+                    scores = (batch_queries * batch_doc_embeddings).sum(-1)
+                    answers = torch.argsort(scores, descending=True)[:30]
+                    sorted_values = scores[answers]
+                    answers = [batch_doc_idx2page[idx] for idx in answers]
+                    str_ans = [f'"{int(x)}"' for x in answers]
+                    formatted_str = "[" + ", ".join(str_ans) + "]"
+                    tmp = {"question_id": json_data['question_id'], "passage_id": formatted_str}
+
+                ans_with_score[tmp['question_id']] = {
+                    "passage_id": tmp['passage_id'],
+                    "scores": sorted_values.tolist()
+                }
+                res.append(tmp)
+                df = pd.DataFrame(res)
+                df.to_csv(save_csv_file, index=False)
+                old_doc_name = cur_doc_name
+            except Exception as e:
+                print(f"处理失败: {str(e)}, question_id: {json_data['question_id']}")
+                zeros = ["0"] * 30
+                str_ans = [f'"{x}"' for x in zeros]
                 formatted_str = "[" + ", ".join(str_ans) + "]"
                 tmp = {"question_id": json_data['question_id'], "passage_id": formatted_str}
-
-            ans_with_score[tmp['question_id']] = {
-                "passage_id": tmp['passage_id'],
-                "scores": sorted_values.tolist()
-            }
-            res.append(tmp)
-            df = pd.DataFrame(res)
-            df.to_csv(save_csv_file, index=False)
-            old_doc_name = cur_doc_name
+                ans_with_score[tmp['question_id']] = {
+                    "passage_id": tmp['passage_id'],
+                    "scores": [0] * 30
+                }
+                res.append(tmp)
+                df = pd.DataFrame(res)
+                df.to_csv(save_csv_file, index=False)
+                
         with open(save_json_file, 'w', newline='') as j_file:
             json.dump(ans_with_score, j_file)
 

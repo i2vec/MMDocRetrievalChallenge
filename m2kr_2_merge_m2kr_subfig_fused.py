@@ -98,9 +98,9 @@ def main():
         if len(unique_arr) > 0: cnt += 1
         image_tag = [1] * len(unique_arr)
         # 合并原有的答案
-        passage_ids = unique_arr[:5] + old_output[i]['fused_to_text']['passage_ids']
+        passage_ids = unique_arr[:10] + old_output[i]['fused_to_text']['passage_ids']
         image_tag = image_tag + [0] * (len(passage_ids) - len(image_tag))
-        passage_ids = list(dict.fromkeys(passage_ids))[:5]
+        passage_ids = list(dict.fromkeys(passage_ids))[:10]
         tmp_res = {'question_id': item['question_id'], 'passage_id': passage_ids,
                    'image_tag': image_tag}
         res.append(tmp_res)

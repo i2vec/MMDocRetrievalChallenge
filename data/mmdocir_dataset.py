@@ -22,7 +22,6 @@ class MMDocIRDataset(Dataset):
     def __len__(self):
         return len(self.data_items)
     
-    @lru_cache(maxsize=10000)
     def __getitem__(self, index):
         if isinstance(index, slice):
             start = index.start if index.start is not None else 0

@@ -6,7 +6,6 @@ import PIL.Image as Image
 import torch
 import chromadb
 from tqdm import tqdm
-import ray
 
 from models.gme import GmeQwen2VL
 from utils.extract_image import extract_sub_image
@@ -20,9 +19,6 @@ collection_name = "m2kr_image"
 model_path = os.environ.get("GME_PATH")
 
 
-
-
-@ray.remote(num_gpus=1)
 class PassageWorker:
     def __init__(self, model_path, challenge_img_root):
         # 加载模型（指定使用 GPU）
@@ -63,17 +59,16 @@ class PassageWorker:
          1. 加载图像，并切片
          2. 按照 batch_size 分批计算图像嵌入
          3. 每处理完一个 batch，就实时调用 writer 写入
-         4. 返回：处理信息以及所有写入任务的 ObjectRef 列表
+         4. 返回：处理信息
         """
-        writer_tasks = []  # 用于保存写入任务的 ObjectRef
         image_path = os.path.join(self.challenge_img_root, page_path)
-        print(image_path)
+
         try:
             img = Image.open(image_path)
         except Exception as e:
             err_msg = f"Passage {passage_id} error in opening image: {e}"
             print(err_msg)
-            return err_msg, writer_tasks
+            return err_msg
 
         # 对图像进行切片
         batch_images = self.clip_image(img)[0:1]
@@ -84,18 +79,15 @@ class PassageWorker:
         # 分批处理图像
         for img_batch in self.batch_iterator(batch_images, batch_size):
             all_embeddings.extend(self.process_batch(img_batch))
-            # 当前批次的下标
-        # current_idxs = idxs[cnt * batch_size: cnt * batch_size + len(img_batch)]
-        # 实时调用 writer 写入
-        task = writer.add_embeddings.remote(passage_id, current_idxs, all_embeddings)
-        writer_tasks.append(task)
-        return f"Passage {passage_id} processed.", writer_tasks
+            
+        # 写入嵌入
+        writer.add_embeddings(passage_id, current_idxs, all_embeddings)
+        return f"Passage {passage_id} processed."
 
 
-@ray.remote
 class ChromaWriter:
     def __init__(self, chroma_db_path, collection_name, tot_num):
-        # 仅由单一 actor 负责写入，避免并发写入问题
+        # 仅由单一 writer 负责写入，避免并发写入问题
         self.client = chromadb.PersistentClient(path=chroma_db_path)
         self.collection = self.client.get_or_create_collection(name=collection_name)
         self.tot_num = tot_num
@@ -118,47 +110,24 @@ class ChromaWriter:
         return f"Writer: Added embeddings for {passage_id} indices {idxs}"
 
 
-def main(num_workers=1):
+def main():
     # 读取 Passage 数据
     df_passages = pd.read_parquet(passage_path)
     if os.environ["DEBUG"] == "true":
         df_passages = df_passages[:20]
-    ray.init()
 
-    # 创建 PassageWorker actor 池，每个 actor 占用 1 个 GPU
-    workers = [
-        PassageWorker.remote(model_path, m2kr_challenge_img_root)
-        for _ in range(num_workers)
-    ]
+    # 创建 PassageWorker 实例
+    worker = PassageWorker(model_path, m2kr_challenge_img_root)
 
-    # 创建单一的 writer actor（用于集中写入）
-    writer = ChromaWriter.remote(chroma_db_path, collection_name, len(df_passages))
+    # 创建 writer 实例
+    writer = ChromaWriter(chroma_db_path, collection_name, len(df_passages))
 
-    passage_tasks = []
-    # 遍历所有 Passage，采用轮询方式分配任务给各个 worker
-    for i, row in tqdm(df_passages.iterrows(), total=len(df_passages), desc="Submitting tasks"):
+    # 遍历所有 Passage 处理
+    for i, row in tqdm(df_passages.iterrows(), total=len(df_passages), desc="Processing passages"):
         passage_id = row['passage_id']
         page_path = row['page_screenshot']
-        passage_tasks.append(workers[i % num_workers].process_passage.remote(passage_id, page_path, writer))
-
-    writer_task_refs = []  # 收集所有 writer 任务的 ObjectRef
-    with tqdm(total=len(passage_tasks), leave=True, desc="Processing passages") as pbar:
-        for task in ray.get(passage_tasks):
-            msg, writer_refs = task
-            # print(msg)
-            writer_task_refs.extend(writer_refs)
-            pbar.update(1)
-
-    # 等待所有 writer 写入任务完成
-    with tqdm(total=len(writer_task_refs), desc="Writing embeddings") as pbar:
-        remaining = writer_task_refs.copy()
-        while remaining:
-            done, remaining = ray.wait(remaining, num_returns=1)
-            for ref in done:
-                print(ray.get(ref))
-                pbar.update(1)
-
-    ray.shutdown()
+        msg = worker.process_passage(passage_id, page_path, writer)
+        print(msg)
 
 
 if __name__ == '__main__':

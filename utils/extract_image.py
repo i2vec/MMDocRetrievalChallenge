@@ -12,7 +12,7 @@ def detect_image_regions(image_path, min_size=50):
     """
     img = cv2.imread(image_path)
     if img is None:
-        print("无法读取图片，请检查路径")
+        print(f"无法读取图片{image_path}，请检查路径")
         return []
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     edges = cv2.Canny(gray, 50, 150)
@@ -159,5 +159,5 @@ def extract_sub_image(image_path):
 
 
 if __name__ == "__main__":
-    image_path = "./store_page/img_15.png"
-    extract_sub_image(image_path)
+    image_path = "/mnt/vepfs/fs_ckps/xumj/data/wwwMrag/M2KR-Challenge/Challenge/Anthony_Pilkington.png"
+    print(extract_sub_image(image_path))
