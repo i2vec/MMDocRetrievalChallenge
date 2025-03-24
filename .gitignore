@@ -177,3 +177,5 @@ cython_debug/
 chroma/
 
 outputs/
+tmp_retrieve/
+extracted_images

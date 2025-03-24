@@ -22,7 +22,7 @@ class ModelWorker:
         self.gme = GmeQwen2VL(
             model_name="gme-Qwen2-VL-7B-Instruct",
             model_path=model_path,
-            device="cuda:0"
+            device="cuda"
         )
         self.client = chromadb.PersistentClient(path="./chroma_db_2")
         self.collection = self.client.get_or_create_collection("m2kr_image")
